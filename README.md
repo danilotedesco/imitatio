@@ -131,7 +131,7 @@ This structure optimizes phonetic acquisition, pronunciation stability, and acti
 
 ## Multilingual recommendations
 
-- Use ISO language codes (`en`, `fr`, `es`, `la`, `el`)  
+- Use ISO language codes (`English`, `Portuguese`, `Spanish`, `French`, `Italian`, `Greek`, `Latin`, `Polish`,`German`,`Russian`)  
 - Choose fallback voices with similar phonology when native voices are weak  
 - Enable exam mode for research or measurable assessment
 
