@@ -1,73 +1,150 @@
-Latin Audio Flashcards — Full bundle
-Includes:
-- vite-app/      -> React app (Vite). Run: npm install && npm run dev
-- static/        -> Pure static index.html for quick offline test
-- backend/       -> Flask backend (synthesize MP3). Run: pip install -r requirements.txt && python app.py
+# Imitatio
 
-Features added:
-- Play sample and rows, per-row Play
-- Exam mode (Latin only)
-- Pedagogical controls: pause timings, repeat Latin, repeat pause
-- Theme toggle: serif/parchment and modern
-- Export MP3 sending options to backend; client shows download progress when possible
+**Imitatio** is a multilingual language-learning platform implementing the *Audio Imitatio Protocol*: a structured auditory prompt–response method using timed speech prompts and guided repetition cycles to reinforce pronunciation, phonetic memory, and active recall. It combines a modern Vite/React interface with a programmable Flask text-to-speech backend and supports configurable voices for any language.
 
-How to test quickly (no build):
-1) Static version: open static/index.html in a browser (or run `python -m http.server` in the static/ folder).
-2) Vite React app:
-   - cd vite-app
-   - npm install
-   - npm run dev
-   - open the local dev URL shown by Vite
-3) Backend (optional, for MP3 export):
-   - cd backend
-   - python -m venv venv
-   - source venv/bin/activate   # macOS / Linux
-   - pip install -r requirements.txt
-   - python app.py
-   - then set backend URL in the app to http://localhost:5000/synthesize
+---
+
+## Project structure
+
+- **vite-app/** → React app (Vite). UI, pedagogical controls, export UI, exam/assessment flows  
+- **static/** → Static `index.html` for quick offline demo or smoke tests  
+- **backend/** → Flask backend that synthesizes MP3s and manages provider fallbacks  
+- **tools/** → helper scripts (voice listing, tooling)  
+- **.github/workflows/** → CI / deployment workflow examples  
+- `DEPLOY.md`, `QUICK_START.md`, `dev.sh`, `render.yaml`
+
+---
+
+## Features
+
+- Per-item and per-sample audio playback (prompt → learner response)  
+- Exam/assessment mode (configurable per language)  
+- Pedagogical playback controls: pause timing and repetition cycles  
+- Theme toggle (classical serif/parchment vs modern UI)  
+- MP3 export pipeline with backend synthesis and download progress  
+- Modular TTS provider pipeline (Edge, Google TTS, Amazon Polly, eSpeak NG, gTTS)
+
+---
+
+## Quick start (local testing)
+
+### Static demo
+```bash
+cd static
+python -m http.server 8000
+```
+
+Open: http://localhost:8000
+
+### Vite React app
+```bash
+cd vite-app
+npm install
+npm run dev
+```
+
+### Backend (optional — MP3 export)
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate      # macOS/Linux
+# .\venv\Scripts\activate     # Windows
+pip install -r requirements.txt
+python app.py
+```
+
+Backend URL in app:
+
+```
+http://localhost:5000/synthesize
+```
+
+---
+
+## Configuration
+
+The backend supports multiple TTS providers with fallback logic.
+
+### Environment variables
+
+```bash
+export PREFERRED_TTS_ENGINE=edge   # edge | google | polly | gtts | espeak
+
+export EDGE_VOICE=en-US-AriaNeural
+export EDGE_FALLBACK_VOICE=it-IT-ElsaNeural
+
+export ENABLE_GOOGLE_TTS=1
+export GOOGLE_TTS_VOICE=it-IT-Wavenet-A
+
+export POLLY_TTS_VOICE=Joanna
+
+# language-specific overrides
+export GOOGLE_TTS_VOICE_fr=fr-FR-Wavenet-A
+export EDGE_VOICE_es=es-ES-ElviraNeural
+```
 
 Notes:
-- Browser TTS voices differ across OSs and browsers.
-- The Flask backend uses gTTS and pydub. It may require ffmpeg installed on your system to manipulate audio files.
 
-- New options for improved Latin/Greek synthesis:
-   - eSpeak NG (local, free): install with `brew install espeak-ng` on macOS. The backend will attempt to call `espeak-ng` as a fallback for Latin (`la`) and Greek (`el`). eSpeak sounds robotic but often pronounces classical languages more accurately than generic voices.
-   - Google Cloud Text-to-Speech (high quality): install the Python client `google-cloud-texttospeech` (already listed in `backend/requirements.txt`). Configure Google credentials via `GOOGLE_APPLICATION_CREDENTIALS` or enable runtime with `ENABLE_GOOGLE_TTS=1`. The backend will use Google TTS when available and enabled.
+- Provider priority is controlled by `PREFERRED_TTS_ENGINE`  
+- Language overrides use ISO codes (`_fr`, `_es`, `_la`, etc.)
 
-   - Preferred engine and voices: you can control which provider is tried first for English/front audio via environment variables:
-      - `PREFERRED_ENG_ENGINE`: `edge` (default) | `google` | `polly` | `gtts`
-      - `EDGE_ENG_VOICE`: Edge voice for English when `edge` is selected (default `en-US-AriaNeural`)
-      - `EDGE_LATIN_FALLBACK_VOICE`: Edge voice used as an Italian-sounding fallback for Latin (default `it-IT-ElsaNeural`)
-      - `GOOGLE_ENG_VOICE`: optional Google TTS voice name to force for English
-      - `POLLY_ENG_VOICE`: optional Polly voice id to force for English (default `Joanna`)
+---
 
-   Examples:
-   ```bash
-   export PREFERRED_ENG_ENGINE=edge
-   export EDGE_ENG_VOICE=en-US-AriaNeural
-   export EDGE_LATIN_FALLBACK_VOICE=it-IT-ElsaNeural
-   ```
+## Listing provider voices
 
-   Listing provider voices
+### Google Cloud
+```bash
+python tools/list_google_voices.py
+```
 
-   You can list available provider voices (to choose good Italian/Latin voices) using these helper scripts:
+### Amazon Polly
+```bash
+pip install boto3
+python tools/list_polly_voices.py
+```
 
-   Google Cloud (requires `GOOGLE_APPLICATION_CREDENTIALS`):
+### eSpeak NG (local fallback)
+```bash
+brew install espeak-ng
+```
 
-   ```bash
-   python tools/list_google_voices.py
-   ```
+---
 
-   Amazon Polly (requires AWS credentials):
+## Notes & caveats
 
-   ```bash
-   pip install boto3
-   python tools/list_polly_voices.py
-   ```
+- Browser-native TTS quality varies across OS and browser  
+- Backend requires `ffmpeg` for audio manipulation  
+- `espeak-ng` provides strong phonetic fallback but sounds synthetic  
+- Google Cloud TTS requires credentials and `ENABLE_GOOGLE_TTS=1`
 
-   Recommended Google Italian voices to try (WaveNet family): `it-IT-Wavenet-A`, `it-IT-Wavenet-B`, `it-IT-Wavenet-C`, `it-IT-Wavenet-D`. Use `GOOGLE_LATIN_VOICE` to pick one.
+---
 
+## Methodology — Audio Imitatio Protocol
 
-Usage notes:
-- To prefer Google TTS, set environment variable `ENABLE_GOOGLE_TTS=1` and ensure Google credentials are available.
-- To use eSpeak NG fallback, install `espeak-ng` system package; no Python key is required.
+The **Audio Imitatio Protocol** uses timed auditory prompts followed by guided imitation cycles:
+
+prompt → imitation → spaced pause → repeated prompt
+
+This structure optimizes phonetic acquisition, pronunciation stability, and active recall across languages.
+
+---
+
+## Multilingual recommendations
+
+- Use ISO language codes (`en`, `fr`, `es`, `la`, `el`)  
+- Choose fallback voices with similar phonology when native voices are weak  
+- Enable exam mode for research or measurable assessment
+
+---
+
+## Development
+
+- See `QUICK_START.md` and `DEPLOY.md` for deployment details  
+- CI workflows are in `.github/workflows/`  
+- New TTS providers should include helper scripts in `tools/`
+
+---
+
+## License
+
+Add your preferred license file (`LICENSE`) and maintainer contact info.
