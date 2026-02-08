@@ -1,0 +1,8 @@
+Flask
+pandas
+gTTS
+pydub
+Flask-Cors
+google-cloud-texttospeech
+edge-tts
+boto3

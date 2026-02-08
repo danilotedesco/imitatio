@@ -1,0 +1,19 @@
+# render.yaml - Deploy configuration for backend service
+
+services:
+  - type: web
+    name: latin-audio-backend
+    runtime: python39
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && python app.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: app.py
+      # Add these environment variables as needed:
+      # - key: PREFERRED_ENG_ENGINE
+      #   value: edge
+      # - key: ENABLE_GOOGLE_TTS
+      #   value: "0"

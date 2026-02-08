@@ -1,0 +1,61 @@
+:root{
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+  --bg:#f7fafc; --card:#fff; --muted:#6b7280; --accent:#4f46e5;
+  --serif-font: 'Georgia', serif;
+  --sans-font: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+.container{max-width:1100px;margin:0 auto;}
+body{font-family:var(--sans-font); background:var(--bg); margin:0; padding:24px; transition:background-color 220ms, color 220ms}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:22px}
+.controls-grid{display:grid;grid-template-columns:1fr 420px;gap:12px;margin-top:16px}
+.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+.btn{padding:8px 12px;border-radius:8px;border:0;cursor:pointer;transition:background 150ms, transform 80ms}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--accent);color:white}
+.btn-ghost{background:#eef2ff;color:#111}
+.small{font-size:13px;color:var(--muted)}
+.table{width:100%;border-collapse:collapse;margin-top:12px}
+.table th, .table td{padding:8px;text-align:left;border-bottom:1px solid #eef2ff}
+
+/* inputs & selects */
+input[type="text"], input[type="file"], input[readonly], select, textarea { padding:10px;border-radius:8px;border:1px solid rgba(15,23,42,0.06);background:transparent;font-size:14px }
+select{appearance:auto}
+
+/* card headers */
+.card h3{margin:0 0 8px 0;font-size:16px}
+.toolbar{display:flex;gap:8px;align-items:center}
+.footer{margin-top:14px;color:var(--muted);font-size:13px}
+
+/* theme toggle (segmented control) */
+.theme-toggle{display:inline-flex;border-radius:999px;overflow:hidden;border:1px solid rgba(15,23,42,0.06)}
+.theme-toggle button{padding:6px 10px;border:0;background:transparent;cursor:pointer;font-size:13px}
+.theme-toggle button.active{background:var(--accent);color:white}
+.theme-toggle button:focus{outline:2px solid rgba(79,70,229,0.25)}
+
+/* dark theme */
+.theme-dark{ --bg: #0f1b2b; --card: #0f2433; --muted: #9fb0c8; --accent: #7c3aed; color: #e6eef8 }
+
+/* responsive */
+@media (max-width:900px){ .controls-grid{grid-template-columns:1fr} }
+
+/* dark theme tweaks */
+.theme-dark body, .theme-dark{
+  color: #e6eef8;
+}
+.theme-dark .card{ box-shadow: none; background: var(--card); }
+.theme-dark .btn{ background: rgba(255,255,255,0.06); color: #cfe0f5; }
+.theme-dark .btn-ghost{ background: transparent; color: #cfe0f5; border:1px solid rgba(255,255,255,0.06)}
+.theme-dark .table th, .theme-dark .table td{border-bottom-color: rgba(255,255,255,0.06)}
+.theme-dark input[type="text"], .theme-dark select, .theme-dark textarea { background: transparent; border:1px solid rgba(255,255,255,0.06); color: #d7e6f8 }
+
+/* subtle card lifting */
+.card:hover{box-shadow:0 10px 30px rgba(15,23,42,0.06)}
+
+/* Header typography and spacing */
+.header{padding:12px 0}
+.header > div:first-child{display:flex;flex-direction:column}
+.app-title{font-family:var(--serif-font);font-size:32px;line-height:1;margin:0;color:inherit;letter-spacing:-0.5px;font-weight:700}
+.tagline{margin-top:6px;font-size:14px;color:var(--muted);max-width:760px}
+.theme-dark .app-title{color:#e6eef8}
