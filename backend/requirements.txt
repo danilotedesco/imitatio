@@ -6,3 +6,4 @@ Flask-Cors
 google-cloud-texttospeech
 edge-tts
 boto3
+imageio-ffmpeg

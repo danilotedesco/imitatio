@@ -39,6 +39,18 @@ try:
 except Exception:
     AudioSegment = None
     PYDUB_AVAILABLE = False
+
+# Configure pydub to use ffmpeg from imageio-ffmpeg package
+# This is needed for deployment on platforms like Render where
+# system ffmpeg is not available
+if PYDUB_AVAILABLE:
+    try:
+        import imageio_ffmpeg
+        ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+        AudioSegment.converter = ffmpeg_path
+        AudioSegment.ffmpeg = ffmpeg_path
+    except Exception:
+        pass  # fall back to system ffmpeg if imageio-ffmpeg not available
 import zipfile
 
 app = Flask(__name__)
