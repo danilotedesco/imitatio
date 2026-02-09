@@ -1,17 +1,17 @@
 # Imitatio
 
-**Imitatio** is a multilingual language-learning platform implementing the *Audio Imitatio Protocol*: a structured auditory prompt–response method using timed speech prompts and guided repetition cycles to reinforce pronunciation, phonetic memory, and active recall. It combines a modern Vite/React interface with a programmable Flask text-to-speech backend and supports configurable voices for any language.
-
----
-
-## Project structure
-
-- **vite-app/** → React app (Vite). UI, pedagogical controls, export UI, exam/assessment flows  
-- **static/** → Static `index.html` for quick offline demo or smoke tests  
-- **backend/** → Flask backend that synthesizes MP3s and manages provider fallbacks  
-- **tools/** → helper scripts (voice listing, tooling)  
-- **.github/workflows/** → CI / deployment workflow examples  
-- `DEPLOY.md`, `QUICK_START.md`, `dev.sh`, `render.yaml`
+ **Imitatio** is a multilingual language-learning platform implementing the *Audio Imitatio Protocol*: a structured auditory prompt–response method using timed speech prompts and guided repetition cycles to reinforce pronunciation, phonetic memory, and active recall. It combines a modern Vite/React interface with a programmable Flask text-to-speech backend and supports configurable voices for any language.
+ 
+ ---
+ 
+ ## Project structure
+ 
+ - **vite-app/** → React app (Vite). UI, pedagogical controls, export UI, exam/assessment flows  
+ - **static/** → Static `index.html` for quick offline demo or smoke tests  
+ - **backend/** → Flask backend that synthesizes MP3s and manages provider fallbacks  
+ - **tools/** → helper scripts (voice listing, tooling)  
+ - **.github/workflows/** → CI / deployment workflow examples  
+ - `QUICK_START.md`, `dev.sh`, `render.yaml`
 
 ---
 
@@ -137,11 +137,11 @@ This structure optimizes phonetic acquisition, pronunciation stability, and acti
 
 ---
 
-## Development
-
-- See `QUICK_START.md` and `DEPLOY.md` for deployment details  
-- CI workflows are in `.github/workflows/`  
-- New TTS providers should include helper scripts in `tools/`
+ ## Development
+ 
+ - See `QUICK_START.md` for deployment details  
+ - CI workflows are in `.github/workflows/`  
+ - New TTS providers should include helper scripts in `tools/`
 
 ---
 

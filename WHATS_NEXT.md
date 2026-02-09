@@ -89,7 +89,7 @@ If you want to deploy the current (incomplete) version:
 Your site will be at: `https://YOUR_USERNAME.github.io/imitatio`
 
 #### Deploy Backend to Render:
-Follow the detailed instructions in `DEPLOY.md` (sections 2.1-2.4)
+Use the Render settings in `render.yaml` and the steps in `QUICK_START.md`.
 
 ---
 
@@ -134,7 +134,7 @@ npm run preview
 
 ### Step 4: Deploy
 - Push to main branch for GitHub Pages deployment
-- Set up Render for backend (follow `DEPLOY.md`)
+- Set up Render for backend (see `render.yaml`)
 
 ---
 
@@ -143,7 +143,7 @@ npm run preview
 ✅ **Documentation:**
 - `README.md` - Project overview and features
 - `QUICK_START.md` - One-command local setup
-- `DEPLOY.md` - Full deployment guide (Portuguese)
+- `render.yaml` - Render deployment settings
 
 ✅ **Working Components:**
 - Backend API (`backend/app.py`) - Ready to use
@@ -169,7 +169,7 @@ npm run preview
 → Check other branches: `git branch -a` and switch to it
 
 **Ready to deploy?**
-→ Follow `DEPLOY.md` for GitHub Pages + Render setup
+→ Follow `render.yaml` and `QUICK_START.md` for GitHub Pages + Render setup
 
 ---
 
