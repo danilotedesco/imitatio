@@ -3,7 +3,6 @@ import Papa from 'papaparse';
 
 function App() {
     const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    const synthUrl = BACKEND_URL + '/synthesize_text';
     const synthesizeEndpoint = BACKEND_URL + '/synthesize';
 
     const [csvFile, setCsvFile] = useState(null);
@@ -40,8 +39,13 @@ function App() {
             v.lang && v.lang.toLowerCase().startsWith(code)
         );
         setFrontVoices(filtered);
-        if (filtered.length > 0 && !frontVoice) {
-            setFrontVoice(filtered[0]);
+        // Set first voice or reset if current voice is not in filtered list
+        if (filtered.length > 0) {
+            if (!frontVoice || !filtered.includes(frontVoice)) {
+                setFrontVoice(filtered[0]);
+            }
+        } else {
+            setFrontVoice(null);
         }
     }, [frontLang, voices]);
 
@@ -51,8 +55,13 @@ function App() {
             v.lang && v.lang.toLowerCase().startsWith(code)
         );
         setBackVoices(filtered);
-        if (filtered.length > 0 && !backVoice) {
-            setBackVoice(filtered[0]);
+        // Set first voice or reset if current voice is not in filtered list
+        if (filtered.length > 0) {
+            if (!backVoice || !filtered.includes(backVoice)) {
+                setBackVoice(filtered[0]);
+            }
+        } else {
+            setBackVoice(null);
         }
     }, [backLang, voices]);
 
@@ -174,13 +183,13 @@ function App() {
                 </select>
                 
                 <select 
-                    value={frontVoice ? voices.indexOf(frontVoice) : ''}
-                    onChange={(e) => setFrontVoice(voices[parseInt(e.target.value)])}
+                    value={frontVoice ? frontVoices.indexOf(frontVoice) : ''}
+                    onChange={(e) => setFrontVoice(frontVoices[parseInt(e.target.value)])}
                     style={{minWidth: '200px'}}
                 >
                     {frontVoices.length > 0 ? (
                         frontVoices.map((v, i) => (
-                            <option key={i} value={voices.indexOf(v)}>
+                            <option key={i} value={i}>
                                 {v.name} — {v.lang} {v.default ? '(default)' : ''}
                             </option>
                         ))
@@ -201,13 +210,13 @@ function App() {
                 </select>
                 
                 <select 
-                    value={backVoice ? voices.indexOf(backVoice) : ''}
-                    onChange={(e) => setBackVoice(voices[parseInt(e.target.value)])}
+                    value={backVoice ? backVoices.indexOf(backVoice) : ''}
+                    onChange={(e) => setBackVoice(backVoices[parseInt(e.target.value)])}
                     style={{minWidth: '200px'}}
                 >
                     {backVoices.length > 0 ? (
                         backVoices.map((v, i) => (
-                            <option key={i} value={voices.indexOf(v)}>
+                            <option key={i} value={i}>
                                 {v.name} — {v.lang} {v.default ? '(default)' : ''}
                             </option>
                         ))
