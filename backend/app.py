@@ -3,6 +3,10 @@ import tempfile, os, pandas as pd
 from gtts import gTTS
 import subprocess
 import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 try:
     from google.cloud import texttospeech
     GOOGLE_TTS_AVAILABLE = True
@@ -33,24 +37,31 @@ POLLY_LATIN_VOICE = os.environ.get('POLLY_LATIN_VOICE', 'Carla')
 GOOGLE_LATIN_VOICE_LIST = os.environ.get('GOOGLE_LATIN_VOICE_LIST', GOOGLE_LATIN_VOICE)
 POLLY_LATIN_VOICE_LIST = os.environ.get('POLLY_LATIN_VOICE_LIST', POLLY_LATIN_VOICE)
 EDGE_LATIN_FALLBACK_VOICE_LIST = os.environ.get('EDGE_LATIN_FALLBACK_VOICE_LIST', EDGE_LATIN_FALLBACK_VOICE)
-try:
-    from pydub import AudioSegment
-    PYDUB_AVAILABLE = True
-except Exception:
-    AudioSegment = None
-    PYDUB_AVAILABLE = False
 
-# Configure pydub to use ffmpeg from imageio-ffmpeg package
+# Configure pydub with ffmpeg from imageio-ffmpeg package
 # This is needed for deployment on platforms like Render where
 # system ffmpeg is not available
-if PYDUB_AVAILABLE:
-    try:
-        import imageio_ffmpeg
-        ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-        AudioSegment.converter = ffmpeg_path
-        AudioSegment.ffmpeg = ffmpeg_path
-    except Exception:
-        pass  # fall back to system ffmpeg if imageio-ffmpeg not available
+AudioSegment = None
+PYDUB_AVAILABLE = False
+try:
+    # First, try to get ffmpeg path from imageio-ffmpeg
+    import imageio_ffmpeg
+    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+    
+    # Now import pydub and configure it
+    from pydub import AudioSegment
+    AudioSegment.converter = ffmpeg_path
+    AudioSegment.ffmpeg = ffmpeg_path
+    AudioSegment.ffprobe = ffmpeg_path.replace('ffmpeg', 'ffprobe') if 'ffmpeg' in ffmpeg_path else None
+    
+    # Test if it works
+    silence = AudioSegment.silent(duration=100)
+    PYDUB_AVAILABLE = True
+    logging.info(f'pydub configured successfully with ffmpeg: {ffmpeg_path}')
+except Exception as e:
+    logging.warning(f'pydub not available: {e}')
+    AudioSegment = None
+    PYDUB_AVAILABLE = False
 import zipfile
 
 app = Flask(__name__)
