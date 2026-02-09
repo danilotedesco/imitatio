@@ -3,7 +3,7 @@
 services:
   - type: web
     name: latin-audio-backend
-    runtime: python39
+    runtime: python312
     plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && python app.py
