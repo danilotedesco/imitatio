@@ -44,24 +44,24 @@ EDGE_LATIN_FALLBACK_VOICE_LIST = os.environ.get('EDGE_LATIN_FALLBACK_VOICE_LIST'
 AudioSegment = None
 PYDUB_AVAILABLE = False
 try:
-    # First, try to get ffmpeg path from imageio-ffmpeg
-    import imageio_ffmpeg
-    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-    
-    # Now import pydub and configure it
     from pydub import AudioSegment
-    AudioSegment.converter = ffmpeg_path
-    AudioSegment.ffmpeg = ffmpeg_path
-    AudioSegment.ffprobe = ffmpeg_path.replace('ffmpeg', 'ffprobe') if 'ffmpeg' in ffmpeg_path else None
-    
-    # Test if it works
-    silence = AudioSegment.silent(duration=100)
     PYDUB_AVAILABLE = True
-    logging.info(f'pydub configured successfully with ffmpeg: {ffmpeg_path}')
 except Exception as e:
     logging.warning(f'pydub not available: {e}')
     AudioSegment = None
     PYDUB_AVAILABLE = False
+
+if PYDUB_AVAILABLE:
+    try:
+        import imageio_ffmpeg
+        ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+        AudioSegment.converter = ffmpeg_path
+        AudioSegment.ffmpeg = ffmpeg_path
+        AudioSegment.ffprobe = ffmpeg_path.replace('ffmpeg', 'ffprobe') if 'ffmpeg' in ffmpeg_path else None
+        logging.info(f'pydub configured successfully with ffmpeg: {ffmpeg_path}')
+    except Exception as e:
+        # Keep pydub available; it may still work if ffmpeg is on PATH
+        logging.warning(f'ffmpeg not configured via imageio-ffmpeg: {e}')
 import zipfile
 
 app = Flask(__name__)
