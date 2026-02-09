@@ -1,21 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-// Other imports and code
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const synthUrl = BACKEND_URL + '/synthesize_text';
 
-const App = () => {
-    // ... other code
+function App() {
+  const [inputText, setInputText] = useState('');
+  const [outputText, setOutputText] = useState('');
 
-    // Updated lines
-    const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    const synthUrl = BACKEND_URL + '/synthesize_text';
+  const handleSynthesize = async () => {
+    const response = await fetch(synthUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: inputText }),
+    });
+    const data = await response.json();
+    setOutputText(data.output || 'Error synthesizing text');
+  };
 
-    return (
-        <div>
-            {/* Other JSX */}
-            <input value={BACKEND_URL + '/synthesize_text'} readOnly />
-            {/* Other JSX */}
-        </div>
-    );
-};
+  return (
+    <div>
+      <h1>Imitatio Application</h1>
+      <textarea
+        value={inputText}
+        onChange={(e) => setInputText(e.target.value)}
+        placeholder="Enter text to synthesize"
+      />
+      <button onClick={handleSynthesize}>Synthesize</button>
+      <div>
+        <h2>Output:</h2>
+        <p>{outputText}</p>
+      </div>
+      <input type="text" value={BACKEND_URL + '/synthesize_text'} readOnly />
+    </div>
+  );
+}
 
 export default App;
