@@ -1,3 +1,1 @@
-const BACKEND_URL = "https://imitatio.onrender.com"; // Updated backend URL
-
-// ... rest of the code ...
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'https://imitatio.onrender.com';
