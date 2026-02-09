@@ -49,7 +49,6 @@ if PYDUB_AVAILABLE:
         ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
         AudioSegment.converter = ffmpeg_path
         AudioSegment.ffmpeg = ffmpeg_path
-        AudioSegment.ffprobe = ffmpeg_path
     except Exception:
         pass  # fall back to system ffmpeg if imageio-ffmpeg not available
 import zipfile
