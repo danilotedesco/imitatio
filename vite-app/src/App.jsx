@@ -1,9 +1,12 @@
 import React from 'react';
+import './App.css';
 
-function App() {
-    const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    const synthUrl = BACKEND_URL + '/synthesize_text';
-    // ... rest of the App component
-}
+const App = () => {
+    return (
+        <div>
+            <h1>Welcome to the Vite App!</h1>
+        </div>
+    );
+};
 
 export default App;
