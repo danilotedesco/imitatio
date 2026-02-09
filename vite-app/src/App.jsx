@@ -380,6 +380,7 @@ export default function App() {
   // ---- MP3 export helpers ----
   const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const synthUrl = BACKEND_URL + '/synthesize_text';
+  const synthCombinedUrl = BACKEND_URL + '/synthesize_combined';
 
   async function synthesizeAndDownload(text, filename, voiceIdx = null, lang = null) {
     if (!synthUrl) { alert('No backend URL configured for synthesis.'); return; }
@@ -399,28 +400,55 @@ export default function App() {
     }
   }
 
+  async function synthesizeCombinedAndDownload(segments, filename, pauseMs = 500, rowPauseMs = 1000) {
+    if (!synthCombinedUrl) { alert('No backend URL configured for synthesis.'); return; }
+    try {
+      const payload = { segments, pause_ms: pauseMs, row_pause_ms: rowPauseMs };
+      const res = await fetch(synthCombinedUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Synthesis failed: ' + res.statusText);
+      const ab = await res.arrayBuffer();
+      const blob = new Blob([ab], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert('Error exporting MP3: ' + (e.message || e));
+    }
+  }
+
   async function exportRowMP3(i) {
     const r = rows[i];
     if (!r) { alert('Row not found'); return; }
     // create filenames safe for download
     const safe = (s) => String(s || '').replace(/[^a-z0-9\-_\.]/gi, '_').slice(0,120);
-    const base = `row_${i + 1}_${safe(r.part1 || r.part2 || '')}`;
+    const filename = `row_${i + 1}_${safe(r.part1 || r.part2 || '')}.mp3`;
+    
+    // Create segments array with front and back text
+    const segments = [
+      { text: String(r.part1 || ''), lang: part1Language || 'en' },
+      { text: String(r.part2 || ''), lang: part2Language || 'la' }
+    ];
+    
     stopVoiceRunRef.current = false;
-    await synthesizeAndDownload(r.part1 || '', `${base}_front.mp3`, voicePart1, part1Language);
-    if (stopVoiceRunRef.current) return;
-    await synthesizeAndDownload(r.part2 || '', `${base}_back.mp3`, voicePart2, part2Language);
+    await synthesizeCombinedAndDownload(segments, filename, 500);
   }
 
   async function exportAllMP3() {
     if (!rows || rows.length === 0) { alert('No rows to export'); return; }
-    if (!confirm(`Export ${rows.length} rows as MP3 files? This will trigger ${rows.length * 2} downloads.`)) return;
+    if (!confirm(`Export all ${rows.length} rows as a single combined MP3 file?`)) return;
     stopVoiceRunRef.current = false;
+    
+    // Build segments array with all rows
+    const segments = [];
     for (let i = 0; i < rows.length; i++) {
-      if (stopVoiceRunRef.current) break;
-      // small delay between requests to avoid overloading a local backend
-      await exportRowMP3(i);
-      await new Promise(r => setTimeout(r, 200));
+      const r = rows[i];
+      segments.push({ text: String(r.part1 || ''), lang: part1Language || 'en' });
+      segments.push({ text: String(r.part2 || ''), lang: part2Language || 'la', is_row_boundary: true });
     }
+    
+    await synthesizeCombinedAndDownload(segments, 'all_rows_combined.mp3', 500, 1000);
   }
 
   return (
@@ -533,8 +561,8 @@ export default function App() {
               <div style={{ flex: 1 }}>
                 <div className="small">Export options</div>
                 <div style={{ marginTop: 8 }}>
-                  <button className="btn btn-primary" onClick={() => { if (rows.length === 0) { alert('No rows to export'); return; } exportAllMP3().catch(()=>{}); }}>Export All (each row → front/back)</button>
-                  <div className="small" style={{ marginTop: 8 }}>This will request MP3s from the configured backend and trigger downloads for each row.</div>
+                  <button className="btn btn-primary" onClick={() => { if (rows.length === 0) { alert('No rows to export'); return; } exportAllMP3().catch(()=>{}); }}>Export All (combined single file)</button>
+                  <div className="small" style={{ marginTop: 8 }}>This will download one single MP3 file containing all rows (front → pause → back for each row).</div>
                 </div>
               </div>
               <div style={{ minWidth: 220 }}>
