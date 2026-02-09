@@ -1,38 +1,53 @@
 import React, { useState } from 'react';
-
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const synthUrl = BACKEND_URL + '/synthesize_text';
+import './App.css';
 
 function App() {
-  const [inputText, setInputText] = useState('');
-  const [outputText, setOutputText] = useState('');
+  const [text, setText] = useState('');
+  const [language, setLanguage] = useState('en-US');
+  const [audioUrl, setAudioUrl] = useState('');
 
-  const handleSynthesize = async () => {
-    const response = await fetch(synthUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text: inputText }),
-    });
-    const data = await response.json();
-    setOutputText(data.output || 'Error synthesizing text');
+  const handleTextChange = (event) => {
+    setText(event.target.value);
+  };
+
+  const handleLanguageChange = (event) => {
+    setLanguage(event.target.value);
+  };
+
+  const synthesizeSpeech = () => {
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language;
+    const audioBlob = new Blob([], { type: 'audio/mpeg' });
+    // Use speech synthesis to generate audio here
+    synth.speak(utterance);
+    setAudioUrl(audioBlob);
+  };
+
+  const downloadAudio = () => {
+    const link = document.createElement('a');
+    link.href = audioUrl;
+    link.download = 'speech.mp3';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div>
-      <h1>Imitatio Application</h1>
-      <textarea
-        value={inputText}
-        onChange={(e) => setInputText(e.target.value)}
-        placeholder="Enter text to synthesize"
-      />
-      <button onClick={handleSynthesize}>Synthesize</button>
-      <div>
-        <h2>Output:</h2>
-        <p>{outputText}</p>
+    <div className="App">
+      <h1>Text to Speech</h1>
+      <textarea value={text} onChange={handleTextChange} placeholder="Type something..." />
+      <div className="controls">
+        <select value={language} onChange={handleLanguageChange}>
+          <option value="en-US">English (US)</option>
+          <option value="es-ES">Spanish (Spain)</option>
+          <option value="fr-FR">French (France)</option>
+          <!-- Add more languages as needed -->
+        </select>
+        <button onClick={synthesizeSpeech}>Synthesize</button>
+        {audioUrl && <button onClick={downloadAudio}>Download</button>}
       </div>
-      <input type="text" value={BACKEND_URL + '/synthesize_text'} readOnly />
+      <audio src={audioUrl} controls></audio>
     </div>
   );
 }
