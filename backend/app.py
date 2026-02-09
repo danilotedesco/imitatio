@@ -483,5 +483,95 @@ def synthesize_text():
             pass
         return jsonify({'error':'synthesis failed'}), 500
 
+
+@app.route('/synthesize_combined', methods=['POST'])
+def synthesize_combined():
+    """Synthesize multiple text segments into a single combined MP3 file.
+    Accepts JSON: {
+        segments: [{ text: string, lang: string }, ...],
+        pause_ms: int (pause between segments within a row, default 500),
+        row_pause_ms: int (pause between rows, default 1000)
+    }
+    Returns: Single combined MP3 file
+    """
+    if not PYDUB_AVAILABLE:
+        return jsonify({'error': 'pydub not available - cannot combine audio'}), 500
+    
+    try:
+        data = request.get_json(force=True)
+    except Exception:
+        data = {}
+    
+    if not isinstance(data, dict):
+        return jsonify({'error': 'invalid request format'}), 400
+    
+    segments = data.get('segments', [])
+    if not segments or not isinstance(segments, list):
+        return jsonify({'error': 'no segments provided'}), 400
+    
+    pause_ms = data.get('pause_ms', 500)
+    row_pause_ms = data.get('row_pause_ms', 1000)
+    
+    # Start with a small silent intro
+    combined_audio = AudioSegment.silent(duration=200)
+    temps = []
+    
+    try:
+        for idx, segment in enumerate(segments):
+            if not isinstance(segment, dict):
+                continue
+            
+            text = segment.get('text', '')
+            lang = segment.get('lang', 'en')
+            is_row_boundary = segment.get('is_row_boundary', False)
+            
+            if not text:
+                continue
+            
+            # Create temporary file for this segment
+            tmp_path = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False).name
+            temps.append(tmp_path)
+            
+            # Synthesize this segment
+            try:
+                gtts_save(text, lang, tmp_path)
+                segment_audio = AudioSegment.from_file(tmp_path)
+                combined_audio += segment_audio
+                
+                # Add pause after segment
+                # Use row_pause_ms if this is a row boundary, otherwise use pause_ms
+                if is_row_boundary and idx < len(segments) - 1:
+                    combined_audio += AudioSegment.silent(duration=row_pause_ms)
+                elif idx < len(segments) - 1:
+                    combined_audio += AudioSegment.silent(duration=pause_ms)
+                    
+            except Exception:
+                logging.exception(f'Failed to synthesize segment {idx}: {text[:50]}')
+                # Add silent duration as fallback
+                combined_audio += AudioSegment.silent(duration=500)
+        
+        # Export combined audio
+        out_path = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False).name
+        combined_audio.export(out_path, format='mp3')
+        
+        # Clean up temporary files
+        for tmp in temps:
+            try:
+                os.remove(tmp)
+            except Exception:
+                pass
+        
+        return send_file(out_path, as_attachment=True, download_name='combined.mp3')
+        
+    except Exception:
+        logging.exception('synthesize_combined failed')
+        # Clean up temporary files
+        for tmp in temps:
+            try:
+                os.remove(tmp)
+            except Exception:
+                pass
+        return jsonify({'error': 'synthesis failed'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
