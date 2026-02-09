@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+vite-app/node_modules/
+backend/venv/
+venv/
+
+# Build outputs
+dist/
+vite-app/dist/
+build/
+*.pyc
+__pycache__/
+
+# Logs
+*.log
+vite-app/vite.log
+backend/backend.log
+backend/flask.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Process files
+*.pid
+backend/server.pid
+
+# Temporary files
+/tmp/
+*.tmp
