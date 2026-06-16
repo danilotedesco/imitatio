@@ -328,13 +328,13 @@ export default function App() {
 
   async function playSampleForVoice(code, voiceIdx) {
     const sampleMap = {
-      la: 'Salve discipule. Quomodo vales? Ego laetus sum te docere.',
-      el: 'Χαῖρε μαθητὴ. Πῶς ἔχεις; Εὐδαίμων εἰμί ὅτι μανθάνεις.',
-      it: 'Ciao, come stai?',
-      en: 'Hello, how are you?',
-      fr: 'Bonjour, comment ça va?',
-      de: 'Guten Tag, wie geht\'s?',
-      es: 'Hola, ¿cómo estás?'
+      la: 'Salve. Haec est Imitatio. Textus insere, voces elige, et lectiones audio ad imitationem et linguam discendam genera.',
+      el: 'Χαῖρε. Αὕτη ἐστὶν ἡ Imitatio. Εἰσάγαγε κείμενα, ἐπίλεξον φωνάς, καὶ δημιούργησον ἠχητικὰ μαθήματα γιὰ μάθησιν γλώσσης.',
+      it: 'Ciao, questa è Imitatio. Inserisci i tuoi testi, scegli le voci e genera lezioni audio per lo shadowing e l’apprendimento delle lingue.',
+      en: 'Hello, this is Imitatio. Enter your texts, choose your voices, and generate audio lessons for shadowing, pronunciation, and vocabulary practice.',
+      fr: 'Bonjour, voici Imitatio. Saisissez vos textes, choisissez vos voix et créez des leçons audio pour le shadowing, la prononciation et le vocabulaire.',
+      de: 'Hallo, hier ist Imitatio. Gib deine Texte ein, wähle Stimmen aus und erstelle Audiodateien zum Shadowing, zur Aussprache und zum Vokabellernen.',
+      es: 'Hola, esto es Imitatio. Introduce tus textos, elige las voces y genera lecciones de audio para practicar shadowing, pronunciación y vocabulario.'
     };
     let codeToUse = code;
     const v = voices[voiceIdx];
