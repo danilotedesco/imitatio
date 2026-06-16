@@ -1,19 +1,13 @@
+"""Deprecated helper
+
+This project now uses Microsoft Edge TTS as the single provider. The
+original Google Cloud helper has been deprecated and is intentionally
+left as a placeholder to avoid accidental usage. Remove this file if
+you're cleaning the repo.
 """
-List Google Cloud Text-to-Speech voices (requires google credentials).
-Usage:
-  export GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
-  python tools/list_google_voices.py
-"""
-from google.cloud import texttospeech
 
 def main():
-    client = texttospeech.TextToSpeechClient()
-    resp = client.list_voices()
-    voices = resp.voices
-    print(f"Found {len(voices)} voices")
-    for v in voices:
-        langs = ','.join(v.language_codes)
-        print(f"{v.name}\tlanguages={langs}\tgender={texttospeech.SsmlVoiceGender(v.ssml_gender).name}")
+  print("list_google_voices.py is deprecated — project uses edge-tts only.")
 
 if __name__ == '__main__':
-    main()
+  main()

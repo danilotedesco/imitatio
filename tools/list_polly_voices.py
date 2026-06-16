@@ -1,18 +1,13 @@
+"""Deprecated helper
+
+This project now uses Microsoft Edge TTS as the single provider. The
+original Amazon Polly helper has been deprecated and is intentionally
+left as a placeholder to avoid accidental usage. Remove this file if
+you're cleaning the repo.
 """
-List Amazon Polly voices (requires AWS credentials configured in environment or config files).
-Usage:
-  pip install boto3
-  python tools/list_polly_voices.py
-"""
-import boto3
 
 def main():
-    client = boto3.client('polly')
-    resp = client.describe_voices()
-    voices = resp.get('Voices', [])
-    print(f"Found {len(voices)} voices")
-    for v in voices:
-        print(f"{v.get('Id')}\tLanguage={v.get('LanguageCode')}\tName={v.get('Name')}\tGender={v.get('Gender')}")
+  print("list_polly_voices.py is deprecated — project uses edge-tts only.")
 
 if __name__ == '__main__':
-    main()
+  main()

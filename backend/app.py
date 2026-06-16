@@ -1,42 +1,18 @@
 from flask import Flask, request, send_file, jsonify
 import tempfile, os, pandas as pd
-from gtts import gTTS
-import subprocess
 import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 try:
-    from google.cloud import texttospeech
-    GOOGLE_TTS_AVAILABLE = True
-except Exception:
-    texttospeech = None
-    GOOGLE_TTS_AVAILABLE = False
-try:
-    import boto3
-    from botocore.exceptions import BotoCoreError, ClientError
-    POLLY_AVAILABLE = True
-except Exception:
-    boto3 = None
-    POLLY_AVAILABLE = False
-try:
     import edge_tts
     EDGE_TTS_AVAILABLE = True
 except Exception:
     edge_tts = None
     EDGE_TTS_AVAILABLE = False
-PREFERRED_ENG_ENGINE = os.environ.get('PREFERRED_ENG_ENGINE', 'edge')
-EDGE_ENG_VOICE = os.environ.get('EDGE_ENG_VOICE', 'en-US-AriaNeural')
-GOOGLE_ENG_VOICE = os.environ.get('GOOGLE_ENG_VOICE', '')
-POLLY_ENG_VOICE = os.environ.get('POLLY_ENG_VOICE', 'Joanna')
-EDGE_LATIN_FALLBACK_VOICE = os.environ.get('EDGE_LATIN_FALLBACK_VOICE', 'it-IT-ElsaNeural')
-GOOGLE_LATIN_VOICE = os.environ.get('GOOGLE_LATIN_VOICE', 'it-IT-Wavenet-A')
-POLLY_LATIN_VOICE = os.environ.get('POLLY_LATIN_VOICE', 'Carla')
-# Accept comma-separated lists of preferred voices (will be tried in order)
-GOOGLE_LATIN_VOICE_LIST = os.environ.get('GOOGLE_LATIN_VOICE_LIST', GOOGLE_LATIN_VOICE)
-POLLY_LATIN_VOICE_LIST = os.environ.get('POLLY_LATIN_VOICE_LIST', POLLY_LATIN_VOICE)
-EDGE_LATIN_FALLBACK_VOICE_LIST = os.environ.get('EDGE_LATIN_FALLBACK_VOICE_LIST', EDGE_LATIN_FALLBACK_VOICE)
+
+from voices import pick_voice
 
 # Configure pydub with ffmpeg from imageio-ffmpeg package
 # This is needed for deployment on platforms like Render where
@@ -77,80 +53,6 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
     return response
 
-def try_google_save(text, lang, path):
-    if not GOOGLE_TTS_AVAILABLE:
-        return False
-    try:
-        client = texttospeech.TextToSpeechClient()
-        # best-effort language_code: prefer explicit region if given
-        language_code = lang if '-' in (lang or '') else (lang or 'en')
-        voice = texttospeech.VoiceSelectionParams(language_code=language_code, ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL)
-        synthesis_input = texttospeech.SynthesisInput(text=text)
-        audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
-        resp = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
-        with open(path, 'wb') as f:
-            f.write(resp.audio_content)
-        return True
-    except Exception:
-        logging.exception('google tts failed')
-        return False
-
-
-def try_google_save_with_voice(text, lang, path, voice_name=None):
-    if not GOOGLE_TTS_AVAILABLE:
-        return False
-    try:
-        client = texttospeech.TextToSpeechClient()
-        # best-effort language_code: prefer explicit region if given
-        language_code = lang if '-' in (lang or '') else (lang or 'en')
-        if voice_name:
-            voice = texttospeech.VoiceSelectionParams(name=voice_name)
-        else:
-            voice = texttospeech.VoiceSelectionParams(language_code=language_code, ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL)
-        synthesis_input = texttospeech.SynthesisInput(text=text)
-        audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
-        resp = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
-        with open(path, 'wb') as f:
-            f.write(resp.audio_content)
-        return True
-    except Exception:
-        logging.exception('google tts failed')
-        return False
-
-
-def try_espeak_save(text, lang, path):
-    # espeak-ng produces WAV; convert to mp3 if possible
-    try:
-        wav_tmp = tempfile.NamedTemporaryFile(suffix='.wav', delete=False).name
-        cmd = ['espeak-ng', '-v', lang or 'en', '-w', wav_tmp, text]
-        subprocess.run(cmd, check=True)
-        # if desired output is mp3, convert
-        if path.lower().endswith('.mp3'):
-            if PYDUB_AVAILABLE:
-                AudioSegment.from_wav(wav_tmp).export(path, format='mp3')
-                os.remove(wav_tmp)
-                return True
-            else:
-                # try ffmpeg conversion
-                try:
-                    subprocess.run(['ffmpeg', '-y', '-i', wav_tmp, path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    os.remove(wav_tmp)
-                    return True
-                except Exception:
-                    # leave wav as fallback if caller expects wav
-                    pass
-        else:
-            # caller asked for wav or other extension; move
-            os.replace(wav_tmp, path)
-            return True
-    except Exception:
-        logging.exception('espeak-ng failed')
-    try:
-        if os.path.exists(wav_tmp):
-            os.remove(wav_tmp)
-    except Exception:
-        pass
-    return False
 
 
 def try_edge_save(text, voice, path):
@@ -175,17 +77,14 @@ def try_edge_save(text, voice, path):
         return False
 
 
-def try_polly_save(text, voice, path):
-    if not POLLY_AVAILABLE:
-        return False
+
+def synthesize_edge_save(text, lang, path, gender='female'):
+    """Synthesize text to MP3 using Edge TTS and the centralized voice map."""
     try:
-        polly = boto3.client('polly')
-        resp = polly.synthesize_speech(Text=text, VoiceId=voice, OutputFormat='mp3')
-        with open(path, 'wb') as f:
-            f.write(resp['AudioStream'].read())
-        return True
-    except (BotoCoreError, ClientError):
-        logging.exception('polly tts failed')
+        voice_name = pick_voice(lang or 'en', gender or 'female')
+        return try_edge_save(text, voice_name, path)
+    except Exception:
+        logging.exception('synthesize_edge_save failed')
         try:
             if os.path.exists(path):
                 os.remove(path)
@@ -194,50 +93,13 @@ def try_polly_save(text, voice, path):
         return False
 
 
-def try_google_save_with_voice_list(text, lang, path, voice_list_csv):
-    if not voice_list_csv:
-        return False
-    voices = [v.strip() for v in voice_list_csv.split(',') if v.strip()]
-    for v in voices:
-        if try_google_save_with_voice(text, lang, path, v):
-            return True
-    return False
-
-
-def try_polly_save_list(text, voice_list_csv, path):
-    if not voice_list_csv:
-        return False
-    voices = [v.strip() for v in voice_list_csv.split(',') if v.strip()]
-    for v in voices:
-        if try_polly_save(text, v, path):
-            return True
-    return False
-
-
-def try_edge_save_list(text, voice_list_csv, path):
-    if not voice_list_csv:
-        return False
-    voices = [v.strip() for v in voice_list_csv.split(',') if v.strip()]
-    for v in voices:
-        if try_edge_save(text, v, path):
-            return True
-    return False
-
-
-def gtts_save(text, lang, path):
-    # Try Google Cloud TTS if available and enabled
-    use_google = os.environ.get('ENABLE_GOOGLE_TTS', '') == '1' or os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-    if use_google and try_google_save(text, lang, path):
-        return
-    # Fallback to gTTS
-    try:
-        t = gTTS(text=text, lang=lang)
-        t.save(path)
-        return
-    except Exception:
-        logging.exception('gTTS failed')
-    # Last-resort: try espeak-ng (local, fast) for Latin/Greek
-    try_espeak_save(text, lang, path)
+def gtts_save(text, lang, path, gender=None):
+    """Legacy wrapper kept for compatibility: routes call `gtts_save`.
+    Internally uses Edge TTS and centralized voice map. Accepts optional
+    `gender` ("female"|"male") and defaults to environment setting.
+    """
+    use_gender = gender or os.environ.get('DEFAULT_VOICE_GENDER', 'female')
+    synthesize_edge_save(text, lang, path, gender=use_gender)
 
 @app.route('/synthesize', methods=['POST'])
 def synthesize():
@@ -299,94 +161,25 @@ def synthesize():
             tmp_back = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False).name
             temps.extend([tmp_front, tmp_back])
 
-            # synthesize front (prefer configured engine, then fall back)
+            # synthesize front using Edge TTS only (centralized voice map)
             front_audio = None
-            made_en = False
+            gender_front = request.form.get('voice_gender_front') or request.form.get('voice_gender') or os.environ.get('DEFAULT_VOICE_GENDER', 'female')
             try:
-                if PREFERRED_ENG_ENGINE == 'edge' and EDGE_TTS_AVAILABLE:
-                    made_en = try_edge_save(front_text, EDGE_ENG_VOICE, tmp_front)
-                if not made_en and PREFERRED_ENG_ENGINE == 'google' and GOOGLE_TTS_AVAILABLE:
-                    made_en = try_google_save_with_voice(front_text, lang_front, tmp_front, GOOGLE_ENG_VOICE or None)
-                if not made_en and PREFERRED_ENG_ENGINE == 'polly' and POLLY_AVAILABLE:
-                    made_en = try_polly_save(front_text, POLLY_ENG_VOICE, tmp_front)
-                if not made_en:
-                    # fallback to gTTS
-                    try:
-                        gtts_save(front_text, 'en' if (lang_front and str(lang_front).lower().startswith('en')) else lang_front, tmp_front)
-                        made_en = True
-                    except Exception:
-                        made_en = False
-                if made_en:
-                    try:
-                        front_audio = AudioSegment.from_file(tmp_front)
-                    except Exception:
-                        front_audio = AudioSegment.silent(duration=700)
-                else:
-                    front_audio = AudioSegment.silent(duration=700)
+                gtts_save(front_text, 'en' if (lang_front and str(lang_front).lower().startswith('en')) else lang_front, tmp_front, gender=gender_front)
+                front_audio = AudioSegment.from_file(tmp_front)
             except Exception:
                 logging.exception('Front synthesis failed')
                 front_audio = AudioSegment.silent(duration=700)
 
-            # synthesize back with fallback sequence
+            # synthesize back using Edge TTS only (centralized voice map)
             back_audio = None
-            # If requested language is Latin, prefer Italian/Latin voices.
-            # Flow: gTTS('la') -> Google Italian WaveNet (configurable) -> Edge Italian -> Polly Italian -> gTTS('en')
-            if lang_back and str(lang_back).lower().startswith('la'):
-                made_la = False
-                try:
-                    if back_text:
-                        # 1) try gTTS latin
-                        try:
-                            gtts_save(back_text, 'la', tmp_back)
-                            made_la = True
-                        except Exception:
-                            made_la = False
-                        # 2) try Google Italian voice
-                        if not made_la and GOOGLE_TTS_AVAILABLE:
-                                made_la = try_google_save_with_voice_list(back_text, 'it-IT', tmp_back, GOOGLE_LATIN_VOICE_LIST)
-                        # 3) try Edge italian fallback
-                        if not made_la and EDGE_TTS_AVAILABLE:
-                                made_la = try_edge_save_list(back_text, EDGE_LATIN_FALLBACK_VOICE_LIST, tmp_back)
-                        # 4) try Polly italian voice
-                        if not made_la and POLLY_AVAILABLE:
-                                made_la = try_polly_save_list(back_text, POLLY_LATIN_VOICE_LIST, tmp_back)
-                        # 5) final fallback: english via gTTS
-                        if not made_la:
-                            try:
-                                gtts_save(back_text, 'en', tmp_back)
-                                made_la = True
-                            except Exception:
-                                made_la = False
-                except Exception:
-                    logging.exception(f"Latin TTS failed for row {idx}: {back_text!r}")
-                    made_la = False
-
-                if made_la:
-                    try:
-                        back_audio = AudioSegment.from_file(tmp_back)
-                    except Exception:
-                        back_audio = None
-                else:
-                    back_audio = AudioSegment.silent(duration=700)
-            else:
-                # non-Latin: existing fallback behavior
-                try:
-                    gtts_save(back_text, lang_back, tmp_back)
-                    back_audio = AudioSegment.from_file(tmp_back)
-                except Exception:
-                    fallbacks = []
-                    if lang_back and lang_back != 'en':
-                        fallbacks.append(str(lang_back).split('-')[0])
-                    fallbacks.extend(['it','en'])
-                    for fb in fallbacks:
-                        try:
-                            gtts_save(back_text, fb, tmp_back)
-                            back_audio = AudioSegment.from_file(tmp_back)
-                            break
-                        except Exception:
-                            back_audio = None
-                if back_audio is None:
-                    back_audio = AudioSegment.silent(duration=700)
+            gender_back = request.form.get('voice_gender_back') or request.form.get('voice_gender') or os.environ.get('DEFAULT_VOICE_GENDER', 'female')
+            try:
+                gtts_save(back_text, lang_back, tmp_back, gender=gender_back)
+                back_audio = AudioSegment.from_file(tmp_back)
+            except Exception:
+                logging.exception('Back synthesis failed')
+                back_audio = AudioSegment.silent(duration=700)
 
             # append sequences with repeats
             out_audio += front_audio + AudioSegment.silent(duration=pause_en_la)
@@ -409,54 +202,30 @@ def synthesize():
                 tmp_back = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False).name
                 made_en = False
                 try:
-                    if PREFERRED_ENG_ENGINE == 'edge' and EDGE_TTS_AVAILABLE:
-                        made_en = try_edge_save(front_text, EDGE_ENG_VOICE, tmp_front)
-                    if not made_en and PREFERRED_ENG_ENGINE == 'google' and GOOGLE_TTS_AVAILABLE:
-                        made_en = try_google_save_with_voice(front_text, lang_front, tmp_front, GOOGLE_ENG_VOICE or None)
-                    if not made_en and PREFERRED_ENG_ENGINE == 'polly' and POLLY_AVAILABLE:
-                        made_en = try_polly_save(front_text, POLLY_ENG_VOICE, tmp_front)
-                    if not made_en:
-                        gtts_save(front_text, 'en' if (lang_front and str(lang_front).lower().startswith('en')) else lang_front, tmp_front)
-                        made_en = True
+                    gender_front = request.form.get('voice_gender_front') or request.form.get('voice_gender') or os.environ.get('DEFAULT_VOICE_GENDER', 'female')
+                    gtts_save(front_text, 'en' if (lang_front and str(lang_front).lower().startswith('en')) else lang_front, tmp_front, gender=gender_front)
+                    made_en = True
                 except Exception:
                     try:
                         open(tmp_front,'wb').close()
                     except Exception:
                         pass
                 # For zip path (no pydub), follow same Latin flow when lang_back indicates Latin
-                made_la = False
-                if lang_back and str(lang_back).lower().startswith('la'):
+                try:
+                    gender_back = request.form.get('voice_gender_back') or request.form.get('voice_gender') or os.environ.get('DEFAULT_VOICE_GENDER', 'female')
+                    gtts_save(back_text, lang_back, tmp_back, gender=gender_back)
+                    made_la = True
+                except Exception:
                     try:
-                        if back_text:
-                            try:
-                                gtts_save(back_text, 'la', tmp_back)
-                                made_la = True
-                            except Exception:
-                                # try edge-tts Italian fallback
-                                if EDGE_TTS_AVAILABLE:
-                                    made_la = try_edge_save(back_text, EDGE_LATIN_FALLBACK_VOICE, tmp_back)
-                                if not made_la:
-                                    # final fallback to English
-                                    try:
-                                        gtts_save(back_text, 'en', tmp_back)
-                                        made_la = True
-                                    except Exception:
-                                        made_la = False
+                        # fallback: try language short code
+                        gtts_save(back_text, (str(lang_back).split('-')[0] if lang_back else 'en'), tmp_back, gender=gender_back)
+                        made_la = True
                     except Exception:
-                        logging.exception(f"Latin TTS failed for row {idx}: {back_text!r}")
-                        made_la = False
-                else:
-                    try:
-                        gtts_save(back_text, lang_back, tmp_back)
-                    except Exception:
-                        # try simple fallbacks
                         try:
-                            gtts_save(back_text, (str(lang_back).split('-')[0] if lang_back else 'it'), tmp_back)
+                            gtts_save(back_text, 'en', tmp_back, gender=gender_back)
+                            made_la = True
                         except Exception:
-                            try:
-                                gtts_save(back_text, 'en', tmp_back)
-                            except Exception:
-                                open(tmp_back,'wb').close()
+                            open(tmp_back,'wb').close()
                 zf.write(tmp_front, arcname=fn_front)
                 zf.write(tmp_back, arcname=fn_back)
                 temps.extend([tmp_front, tmp_back])
@@ -491,12 +260,13 @@ def synthesize_text():
         data = {}
     text = data.get('text') if isinstance(data, dict) else None
     lang = (data.get('lang') if isinstance(data, dict) else None) or 'en'
+    gender = (data.get('gender') if isinstance(data, dict) else None) or os.environ.get('DEFAULT_VOICE_GENDER', 'female')
     if not text:
         return jsonify({'error': 'no text provided'}), 400
     out_path = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False).name
     try:
-        # use the same gTTS / fallback pipeline used elsewhere
-        gtts_save(text, lang, out_path)
+        # use Edge-only pipeline
+        gtts_save(text, lang, out_path, gender=gender)
         return send_file(out_path, as_attachment=True, download_name='speech.mp3')
     except Exception:
         logging.exception('synthesize_text failed')
@@ -557,7 +327,8 @@ def synthesize_combined():
             
             # Synthesize this segment
             try:
-                gtts_save(text, lang, tmp_path)
+                gender_seg = segment.get('gender') or os.environ.get('DEFAULT_VOICE_GENDER', 'female')
+                gtts_save(text, lang, tmp_path, gender=gender_seg)
                 segment_audio = AudioSegment.from_file(tmp_path)
                 combined_audio += segment_audio
                 

@@ -18,16 +18,14 @@ const LANGUAGE_OPTIONS = [
 // in the UI and for sending a preferred gender to the backend). This list
 // is a lightweight hint; the backend performs the authoritative mapping.
 const EDGE_VOICE_MAP = {
-  en: { female: 'en-US-AriaNeural', male: 'en-US-GuyNeural' },
-  it: { female: 'it-IT-ElsaNeural', male: 'it-IT-PaoloNeural' },
+  en: { female: 'en-US-JennyNeural', male: 'en-US-GuyNeural' },
   fr: { female: 'fr-FR-DeniseNeural', male: 'fr-FR-HenriNeural' },
-  de: { female: 'de-DE-KatjaNeural', male: 'de-DE-ConradNeural' },
   es: { female: 'es-ES-ElviraNeural', male: 'es-ES-AlvaroNeural' },
-  pt: { female: 'pt-BR-FranciscaNeural', male: 'pt-BR-DanielNeural' },
-  la: { female: 'it-IT-ElsaNeural', male: 'it-IT-PaoloNeural' },
-  el: { female: 'el-GR-AthinaNeural', male: 'el-GR-NikosNeural' },
-  ru: { female: 'ru-RU-SvetlanaNeural', male: 'ru-RU-DmitryNeural' },
-  pl: { female: 'pl-PL-ZofiaNeural', male: 'pl-PL-MarekNeural' }
+  it: { female: 'it-IT-ElsaNeural', male: 'it-IT-DiegoNeural' },
+  de: { female: 'de-DE-KatjaNeural', male: 'de-DE-ConradNeural' },
+  el: { female: 'el-GR-AthinaNeural', male: 'el-GR-NestorasNeural' },
+  pt: { female: 'pt-BR-FranciscaNeural', male: 'pt-BR-AntonioNeural' },
+  la: { female: 'it-IT-ElsaNeural', male: 'it-IT-DiegoNeural' }
 };
 
 function pickEdgeVoice(langCode, gender = 'female') {

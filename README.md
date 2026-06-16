@@ -23,6 +23,7 @@
 - Theme toggle (classical serif/parchment vs modern UI)  
 - MP3 export pipeline with backend synthesis and download progress  
 - Modular TTS provider pipeline (Edge, Google TTS, Amazon Polly, eSpeak NG, gTTS)
+ - MP3 export pipeline using Microsoft Edge TTS (`edge-tts`) as the single synthesis engine
 
 ---
 
@@ -63,30 +64,12 @@ http://localhost:5000/synthesize
 
 ## Configuration
 
-The backend supports multiple TTS providers with fallback logic.
+The backend now standardizes on Microsoft Edge TTS via the `edge-tts` package.
 
-### Environment variables
+- Voice mapping and selection are centralized in `backend/voices.py` using `VOICE_MAP` and `pick_voice()`.
+- The only optional environment variable used by the synthesis pipeline is `DEFAULT_VOICE_GENDER` (defaults to `female`).
 
-```bash
-export PREFERRED_TTS_ENGINE=edge   # edge | google | polly | gtts | espeak
-
-export EDGE_VOICE=en-US-AriaNeural
-export EDGE_FALLBACK_VOICE=it-IT-ElsaNeural
-
-export ENABLE_GOOGLE_TTS=1
-export GOOGLE_TTS_VOICE=it-IT-Wavenet-A
-
-export POLLY_TTS_VOICE=Joanna
-
-# language-specific overrides
-export GOOGLE_TTS_VOICE_fr=fr-FR-Wavenet-A
-export EDGE_VOICE_es=es-ES-ElviraNeural
-```
-
-Notes:
-
-- Provider priority is controlled by `PREFERRED_TTS_ENGINE`  
-- Language overrides use ISO codes (`_fr`, `_es`, `_la`, etc.)
+Language-specific voice choices are taken from `VOICE_MAP`. If a language or gender is not recognized, the backend falls back to `en-US-JennyNeural`.
 
 ---
 
