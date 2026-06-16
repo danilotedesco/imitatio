@@ -469,6 +469,7 @@ export default function App() {
       
 
       <div className="controls-grid" style={{ marginTop: 16 }}>
+        {/* LEFT COLUMN: Input, Voice Test, Preview */}
         <div>
           <div className="card">
             <h3>Input</h3>
@@ -554,134 +555,49 @@ export default function App() {
               </table>
             </div>
           </div>
-
-          <div style={{ marginTop: 16 }} className="card">
-            <h3>Export MP3</h3>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1 }}>
-                <div className="small">Export options</div>
-                <div style={{ marginTop: 8 }}>
-                  <button className="btn btn-primary" onClick={() => { if (rows.length === 0) { alert('No rows to export'); return; } exportAllMP3().catch(()=>{}); }}>Export All (combined single file)</button>
-                  <div className="small" style={{ marginTop: 8 }}>This will download one single MP3 file containing all rows (front → pause → back for each row).</div>
-                </div>
-              </div>
-              <div style={{ minWidth: 220 }}>
-                <div className="small">Single row export</div>
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <select defaultValue={0} onChange={() => {}} style={{ flex: 1 }}>
-                      <option value={-1}>Use Preview Export buttons</option>
-                    </select>
-                    <button className="btn" onClick={() => alert('Use the Export MP3 button in the Preview table for individual rows.')}>Help</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div style={{ marginTop: 12 }} className="small">Backend URL: {BACKEND_URL}/synthesize (read-only)</div>
-          </div>
-
         </div>
 
+        {/* RIGHT COLUMN: Audio Segments, Export */}
         <div>
           <div className="card">
             <h3>Audio segments</h3>
-
-            <div style={{ border: '1px solid rgba(15,23,42,0.06)', padding: 10, borderRadius: 8, marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong>First Audio Segment</strong>
-                  <div className="small">Language & voice for the first (front) segment</div>
-                </div>
-                <div className="small">{voices[voicePart1] ? voices[voicePart1].name + ' (' + voices[voicePart1].lang + ')' : 'No voice selected'}</div>
-              </div>
-
-              <div style={{ marginTop: 8 }}>
-                <div className="small">Language</div>
-                <select value={part1Language} onChange={e => setPart1Language(e.target.value)} style={{ width: '100%', marginTop: 6, padding: 8 }}>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
+              {/* First Audio Segment */}
+              <div>
+                <label className="segment-label">
+                  <div className="segment-title">First Segment</div>
+                  <div className="small" style={{ marginBottom: 8 }}>Language & voice</div>
+                </label>
+                <select value={part1Language} onChange={e => setPart1Language(e.target.value)} style={{ width: '100%', marginBottom: 8 }}>
                   {LANGUAGE_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
                 </select>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                  <div className="small">Voice</div>
-                  <div>
-                    <button className="btn btn-ghost" onClick={() => { const idx = voices.findIndex(v => matchVoiceToLang(v, part1Language)); if (idx >= 0) setVoicePart1(idx); }}>Use recommended</button>
-                  </div>
-                </div>
-                <select value={voicePart1} onChange={e => setVoicePart1(Number(e.target.value))} style={{ width: '100%', marginTop: 6, padding: 8 }}>
-                  {filteredIndicesPart1.length > 0 ? filteredIndicesPart1.map(i => <option key={i} value={i}>{voices[i].name} — {voices[i].lang}</option>) : voices.map((v, i) => <option key={i} value={i}>{v.name} — {v.lang}</option>)}
+                <select value={voicePart1} onChange={e => setVoicePart1(Number(e.target.value))} style={{ width: '100%' }}>
+                  {filteredIndicesPart1.length > 0 ? filteredIndicesPart1.map(i => <option key={i} value={i}>{voices[i].name}</option>) : voices.map((v, i) => <option key={i} value={i}>{v.name}</option>)}
                 </select>
-                {filteredIndicesPart1.length === 0 && <div className="small" style={{ marginTop: 6, color: '#b91c1c' }}>No voices matched this language — showing all voices.</div>}
-              </div>
-                <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-                  <div>
-                    <div className="small">First segment pause (ms)</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <button className="btn" onClick={() => setFirstPauseMs(p => Math.max(0, p - 10))}>-10</button>
-                      <input type="number" value={firstPauseMs} onChange={e => setFirstPauseMs(Number(e.target.value || 0))} style={{ width: '100%', marginTop: 6, padding: 8 }} />
-                      <button className="btn" onClick={() => setFirstPauseMs(p => p + 10)}>+10</button>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="small">First segment rate</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <input type="range" min={0.6} max={1.4} step={0.01} value={firstRate} onChange={e => setFirstRate(Number(e.target.value))} style={{ flex: 1 }} />
-                      <div style={{ width: 56, textAlign: 'right' }}>{firstRate.toFixed(2)}</div>
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              
-
-            <div style={{ border: '1px solid rgba(15,23,42,0.06)', padding: 10, borderRadius: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong>Second Audio Segment</strong>
-                  <div className="small">Language & voice for the second (back) segment</div>
-                </div>
-                <div className="small">{voices[voicePart2] ? voices[voicePart2].name + ' (' + voices[voicePart2].lang + ')' : 'No voice selected'}</div>
-              </div>
-
-              <div style={{ marginTop: 8 }}>
-                <div className="small">Language</div>
-                <select value={part2Language} onChange={e => setPart2Language(e.target.value)} style={{ width: '100%', marginTop: 6, padding: 8 }}>
+              {/* Second Audio Segment */}
+              <div>
+                <label className="segment-label">
+                  <div className="segment-title">Second Segment</div>
+                  <div className="small" style={{ marginBottom: 8 }}>Language & voice</div>
+                </label>
+                <select value={part2Language} onChange={e => setPart2Language(e.target.value)} style={{ width: '100%', marginBottom: 8 }}>
                   {LANGUAGE_OPTIONS.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
                 </select>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                  <div className="small">Voice</div>
-                  <div>
-                    <button className="btn btn-ghost" onClick={() => { const idx = voices.findIndex(v => matchVoiceToLang(v, part2Language)); if (idx >= 0) setVoicePart2(idx); }}>Use recommended</button>
-                  </div>
-                </div>
-                <select value={voicePart2} onChange={e => setVoicePart2(Number(e.target.value))} style={{ width: '100%', marginTop: 6, padding: 8 }}>
-                  {filteredIndicesPart2.length > 0 ? filteredIndicesPart2.map(i => <option key={i} value={i}>{voices[i].name} — {voices[i].lang}</option>) : voices.map((v, i) => <option key={i} value={i}>{v.name} — {v.lang}</option>)}
+                <select value={voicePart2} onChange={e => setVoicePart2(Number(e.target.value))} style={{ width: '100%' }}>
+                  {filteredIndicesPart2.length > 0 ? filteredIndicesPart2.map(i => <option key={i} value={i}>{voices[i].name}</option>) : voices.map((v, i) => <option key={i} value={i}>{v.name}</option>)}
                 </select>
-                {filteredIndicesPart2.length === 0 && <div className="small" style={{ marginTop: 6, color: '#b91c1c' }}>No voices matched this language — showing all voices.</div>}
-                <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-                  <div>
-                    <div className="small">Second segment pause (ms)</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <button className="btn" onClick={() => setSecondPauseMs(p => Math.max(0, p - 10))}>-10</button>
-                      <input type="number" value={secondPauseMs} onChange={e => setSecondPauseMs(Number(e.target.value || 0))} style={{ width: '100%', marginTop: 6, padding: 8 }} />
-                      <button className="btn" onClick={() => setSecondPauseMs(p => p + 10)}>+10</button>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="small">Second segment rate</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <input type="range" min={0.6} max={1.4} step={0.01} value={secondRate} onChange={e => setSecondRate(Number(e.target.value))} style={{ flex: 1 }} />
-                      <div style={{ width: 56, textAlign: 'right' }}>{secondRate.toFixed(2)}</div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
+          </div>
 
-            <div style={{ marginTop: 10 }}>
-              <div className="small">Backend URL (for MP3 export)</div>
-              <input value={BACKEND_URL + "/synthesize"} readOnly style={{ width: '100%', marginTop: 6, padding: 8 }} />
-            </div>
+          <div style={{ marginTop: 16 }} className="card">
+            <h3>Export MP3</h3>
+            <button className="btn btn-primary" onClick={() => { if (rows.length === 0) { alert('No rows to export'); return; } exportAllMP3().catch(()=>{}); }} style={{ width: '100%', marginBottom: 12 }}>Export ALL (combined single file)</button>
+            <div className="small">This will download one single MP3 file containing all rows.</div>
+            <div style={{ marginTop: 12 }} className="small">Backend URL: {BACKEND_URL}/synthesize (read-only)</div>
           </div>
         </div>
       </div>
