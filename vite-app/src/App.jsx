@@ -14,6 +14,28 @@ const LANGUAGE_OPTIONS = [
   { code: "el", label: "Greek" },
 ];
 
+// Small Edge voice map (used only for displaying recommended voice names
+// in the UI and for sending a preferred gender to the backend). This list
+// is a lightweight hint; the backend performs the authoritative mapping.
+const EDGE_VOICE_MAP = {
+  en: { female: 'en-US-AriaNeural', male: 'en-US-GuyNeural' },
+  it: { female: 'it-IT-ElsaNeural', male: 'it-IT-PaoloNeural' },
+  fr: { female: 'fr-FR-DeniseNeural', male: 'fr-FR-HenriNeural' },
+  de: { female: 'de-DE-KatjaNeural', male: 'de-DE-ConradNeural' },
+  es: { female: 'es-ES-ElviraNeural', male: 'es-ES-AlvaroNeural' },
+  pt: { female: 'pt-BR-FranciscaNeural', male: 'pt-BR-DanielNeural' },
+  la: { female: 'it-IT-ElsaNeural', male: 'it-IT-PaoloNeural' },
+  el: { female: 'el-GR-AthinaNeural', male: 'el-GR-NikosNeural' },
+  ru: { female: 'ru-RU-SvetlanaNeural', male: 'ru-RU-DmitryNeural' },
+  pl: { female: 'pl-PL-ZofiaNeural', male: 'pl-PL-MarekNeural' }
+};
+
+function pickEdgeVoice(langCode, gender = 'female') {
+  const short = String(langCode || 'en').split('-')[0];
+  const pick = EDGE_VOICE_MAP[short] || EDGE_VOICE_MAP['en'];
+  return pick[gender] || pick['female'];
+}
+
 function matchVoiceToLang(v, code) {
   if (!v) return false;
   const lang = (v.lang || "").toLowerCase();
@@ -56,6 +78,8 @@ export default function App() {
   const [voices, setVoices] = useState([]);
   const [voicePart1, setVoicePart1] = useState(0);
   const [voicePart2, setVoicePart2] = useState(0);
+  const [part1Gender, setPart1Gender] = useState('female');
+  const [part2Gender, setPart2Gender] = useState('female');
   const [part1Language, setPart1Language] = useState("la");
   const [part2Language, setPart2Language] = useState("en");
   const [theme, setTheme] = useState("light");
@@ -313,6 +337,7 @@ export default function App() {
   // Voice test controls (from static/voice_test.html)
   const [voiceTestLang, setVoiceTestLang] = useState('la');
   const [voiceTestIndex, setVoiceTestIndex] = useState(-1);
+  const [voiceTestGender, setVoiceTestGender] = useState('female');
   const stopVoiceRunRef = useRef(false);
 
   const filteredIndicesForTest = voices.map((v, i) => i).filter((i) => {
@@ -327,15 +352,7 @@ export default function App() {
   }, [voiceTestLang, voices.join ? voices.join() : voices, JSON.stringify(filteredIndicesForTest)]);
 
   async function playSampleForVoice(code, voiceIdx) {
-    const sampleMap = {
-      la: 'Salve. Haec est Imitatio. Textus insere, voces elige, et lectiones audio ad imitationem et linguam discendam genera.',
-      el: 'Χαῖρε. Αὕτη ἐστὶν ἡ Imitatio. Εἰσάγαγε κείμενα, ἐπίλεξον φωνάς, καὶ δημιούργησον ἠχητικὰ μαθήματα γιὰ μάθησιν γλώσσης.',
-      it: 'Ciao, questa è Imitatio. Inserisci i tuoi testi, scegli le voci e genera lezioni audio per lo shadowing e l’apprendimento delle lingue.',
-      en: 'Hello, this is Imitatio. Enter your texts, choose your voices, and generate audio lessons for shadowing, pronunciation, and vocabulary practice.',
-      fr: 'Bonjour, voici Imitatio. Saisissez vos textes, choisissez vos voix et créez des leçons audio pour le shadowing, la prononciation et le vocabulaire.',
-      de: 'Hallo, hier ist Imitatio. Gib deine Texte ein, wähle Stimmen aus und erstelle Audiodateien zum Shadowing, zur Aussprache und zum Vokabellernen.',
-      es: 'Hola, esto es Imitatio. Introduce tus textos, elige las voces y genera lecciones de audio para practicar shadowing, pronunciación y vocabulario.'
-    };
+    // SAMPLE_MAP is used for server-side playback as well
     let codeToUse = code;
     const v = voices[voiceIdx];
     if (code === 'all') {
@@ -350,7 +367,7 @@ export default function App() {
     const suggestedRate = isNeural ? (baseRates[langKey] || 1.0) : ((baseRates[langKey] || 0.95) * 0.95);
     const suggestedPitch = basePitches[langKey] || 1.0;
 
-    const text = sampleMap[codeToUse] || sampleMap.la;
+    const text = SAMPLE_MAP[codeToUse] || SAMPLE_MAP.la;
     // split into clauses for more natural pacing
     const clauses = String(text).split(/[\.\?\!]+\s*/).map(s => s.trim()).filter(Boolean);
     stopVoiceRunRef.current = false;
@@ -361,6 +378,36 @@ export default function App() {
         await speak(clause, voiceIdx, codeToUse, opts);
       } catch (e) {}
       await new Promise(r => setTimeout(r, 180));
+    }
+  }
+
+  // Small reusable sample map so other actions (server synth playback)
+  // can use the same sample texts.
+  const SAMPLE_MAP = {
+    la: 'Salve. Haec est Imitatio. Textus insere, voces elige, et lectiones audio ad imitationem et linguam discendam genera.',
+    el: 'Χαῖρε. Αὕτη ἐστὶν ἡ Imitatio. Εἰσάγαγε κείμενα, ἐπίλεξον φωνάς, καὶ δημιούργησον ἠχητικὰ μαθήματα γιὰ μάθησιν γλώσσης.',
+    it: 'Ciao, questa è Imitatio. Inserisci i tuoi testi, scegli le voci e genera le lezioni audio per shadowing e apprendimento.',
+    en: 'Hello, this is Imitatio. Enter your texts, choose your voices, and generate audio lessons for shadowing, pronunciation, and vocabulary practice.',
+    fr: 'Bonjour, voici Imitatio. Saisissez vos textes, choisissez vos voix et créez des leçons audio pour le shadowing, la prononciation et le vocabulaire.',
+    de: 'Hallo, hier ist Imitatio. Gib deine Texte ein, wähle Stimmen aus und erstelle Audiodateien zum Shadowing, zur Aussprache und zum Vokabellernen.',
+    es: 'Hola, esto es Imitatio. Introduce tus textos, elige las voces y genera lecciones de audio para practicar shadowing, pronunciación y vocabulario.'
+  };
+
+  async function synthesizeAndPlay(text, lang = 'en', gender = 'female') {
+    if (!synthUrl) { alert('No backend configured for server-side playback.'); return; }
+    try {
+      const payload = { text: String(text || ''), lang, gender };
+      const res = await fetch(synthUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Synthesis failed: ' + res.statusText);
+      const ab = await res.arrayBuffer();
+      const blob = new Blob([ab], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => { URL.revokeObjectURL(url); };
+      await audio.play();
+    } catch (e) {
+      console.error(e);
+      alert('Error playing synthesized audio: ' + (e.message || e));
     }
   }
 
@@ -427,8 +474,8 @@ export default function App() {
     
     // Create segments array with front and back text
     const segments = [
-      { text: String(r.part1 || ''), lang: part1Language || 'en' },
-      { text: String(r.part2 || ''), lang: part2Language || 'la' }
+      { text: String(r.part1 || ''), lang: part1Language || 'en', gender: part1Gender },
+      { text: String(r.part2 || ''), lang: part2Language || 'la', gender: part2Gender }
     ];
     
     stopVoiceRunRef.current = false;
@@ -444,8 +491,8 @@ export default function App() {
     const segments = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
-      segments.push({ text: String(r.part1 || ''), lang: part1Language || 'en' });
-      segments.push({ text: String(r.part2 || ''), lang: part2Language || 'la', is_row_boundary: true });
+      segments.push({ text: String(r.part1 || ''), lang: part1Language || 'en', gender: part1Gender });
+      segments.push({ text: String(r.part2 || ''), lang: part2Language || 'la', gender: part2Gender, is_row_boundary: true });
     }
     
     await synthesizeCombinedAndDownload(segments, 'all_rows_combined.mp3', 500, 1000);
@@ -523,8 +570,27 @@ export default function App() {
                 </select>
               </div>
 
+              <div>
+                <div className="small">Gender</div>
+                <select value={voiceTestGender} onChange={e => setVoiceTestGender(e.target.value)}>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </div>
+
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" onClick={() => { if (isNaN(voiceTestIndex) || voiceTestIndex < 0) { alert('No voice selected for that language.'); return; } stopVoiceRunRef.current = false; playSampleForVoice(voiceTestLang, voiceTestIndex).catch(()=>{}); }}>Play Sample</button>
+                <button className="btn btn-primary" onClick={async () => {
+                  if (isNaN(voiceTestIndex) || voiceTestIndex < 0) { alert('No voice selected for that language.'); return; }
+                  stopVoiceRunRef.current = false;
+                  // derive the language code for the selected voice if 'all' was chosen
+                  const v = voices[voiceTestIndex];
+                  const langToUse = (voiceTestLang === 'all') ? (v && v.lang ? v.lang.split('-')[0] : 'en') : voiceTestLang;
+                  const sampleText = SAMPLE_MAP[langToUse] || SAMPLE_MAP['en'];
+                  if (synthUrl) {
+                    try { await synthesizeAndPlay(sampleText, langToUse, voiceTestGender); return; } catch (e) { console.warn('Server synth failed, falling back to browser voices', e); }
+                  }
+                  playSampleForVoice(langToUse, voiceTestIndex).catch(()=>{});
+                }}>Play Sample</button>
                 <button className="btn" onClick={() => { stopVoiceRunRef.current = false; playAllVoicesForLang(voiceTestLang).catch(()=>{}); }}>Play All</button>
                 <button className="btn" onClick={() => { stopVoiceRunRef.current = true; if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel(); }} style={{ background: '#ef4444', color: '#fff' }}>Stop</button>
               </div>
@@ -575,6 +641,13 @@ export default function App() {
                 <select value={voicePart1} onChange={e => setVoicePart1(Number(e.target.value))} style={{ width: '100%' }}>
                   {filteredIndicesPart1.length > 0 ? filteredIndicesPart1.map(i => <option key={i} value={i}>{voices[i].name}</option>) : voices.map((v, i) => <option key={i} value={i}>{v.name}</option>)}
                 </select>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <select value={part1Gender} onChange={e => setPart1Gender(e.target.value)} style={{ width: 120 }}>
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                  </select>
+                  <div className="small" style={{ alignSelf: 'center' }}>Edge: {pickEdgeVoice(part1Language, part1Gender)}</div>
+                </div>
               </div>
 
               {/* Second Audio Segment */}
@@ -589,6 +662,13 @@ export default function App() {
                 <select value={voicePart2} onChange={e => setVoicePart2(Number(e.target.value))} style={{ width: '100%' }}>
                   {filteredIndicesPart2.length > 0 ? filteredIndicesPart2.map(i => <option key={i} value={i}>{voices[i].name}</option>) : voices.map((v, i) => <option key={i} value={i}>{v.name}</option>)}
                 </select>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <select value={part2Gender} onChange={e => setPart2Gender(e.target.value)} style={{ width: 120 }}>
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                  </select>
+                  <div className="small" style={{ alignSelf: 'center' }}>Edge: {pickEdgeVoice(part2Language, part2Gender)}</div>
+                </div>
               </div>
             </div>
           </div>
